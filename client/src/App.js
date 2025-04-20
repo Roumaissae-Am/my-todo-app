@@ -3,13 +3,13 @@ import './App.css';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm'; // 👈 Import RegisterForm
+import RegisterForm from './components/RegisterForm'; //  Import RegisterForm
 import { FiLogOut } from 'react-icons/fi';
 
 function App() {
   const [refresh, setRefresh] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [showRegister, setShowRegister] = useState(false); // 👈 Nouveau state
+  const [showRegister, setShowRegister] = useState(false); //  Nouveau state
 
   const handleTaskAdded = () => setRefresh(prev => !prev);
 

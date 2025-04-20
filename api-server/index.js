@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 const SECRET_KEY = 'votre_clé_secrète';
 
 app.use(cors());
@@ -79,9 +78,5 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
     res.json({ message: 'Tâche supprimée' });
 });
 
-// app.listen(PORT, () => {
-//     console.log(`Serveur en écoute sur http://localhost:${PORT}`);
-// });
+//  Export pour Vercel
 module.exports = app;
-
-
