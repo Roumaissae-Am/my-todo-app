@@ -4,9 +4,16 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const SECRET_KEY = 'votre_clé_secrète';
 
-app.use(cors());
+// Utilisation de la variable d'environnement pour la clé secrète JWT
+const SECRET_KEY = process.env.JWT_SECRET_KEY || 'clé_dev_temporaire';
+
+// Configuration CORS pour n'accepter que le frontend Netlify
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
