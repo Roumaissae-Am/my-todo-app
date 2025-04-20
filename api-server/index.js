@@ -10,12 +10,38 @@ const SECRET_KEY = process.env.JWT_SECRET_KEY || 'clé_dev_temporaire';
 
 // Configuration CORS pour n'accepter que le frontend Netlify
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: function(origin, callback) {
+        // Autoriser les requêtes sans origine (comme les appels API directs)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+        // Nettoyer les URLs en retirant les slashes à la fin
+        const cleanOrigin = origin.replace(/\/$/, '');
+        const cleanAllowedOrigin = allowedOrigin.replace(/\/$/, '');
+        
+        if (cleanOrigin === cleanAllowedOrigin) {
+            callback(null, true);
+        } else {
+            callback(new Error('Non autorisé par CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Ajouter des en-têtes de sécurité
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // Désactiver la CSP pour le développement
+    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:");
+    next();
+});
 
 let users = [];
 let tasks = [];
