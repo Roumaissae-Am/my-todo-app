@@ -16,22 +16,19 @@ const RegisterForm = ({ onRegisterSuccess }) => {
             return;
         }
 
-        try {
-            const response = await authService.register(username, password);
-            if (response.success) {
-                setSuccess("Inscription réussie. Vous pouvez maintenant vous connecter.");
-                setUsername('');
-                setPassword('');
-                setError(null);
-                if (onRegisterSuccess) onRegisterSuccess();
-            } else {
-                setError(response.message || "Une erreur est survenue");
-                setSuccess(null);
-            }
-        } catch (err) {
-            console.error('Erreur lors de l\'inscription:', err);
-            setError(err.response?.data?.message || "Erreur lors de l'inscription");
-            setSuccess(null);
+        setError(null);
+        setSuccess(null);
+
+        const result = await authService.register(username, password);
+        console.log('Résultat inscription:', result);
+
+        if (result.success) {
+            setSuccess("Inscription réussie. Vous pouvez maintenant vous connecter.");
+            setUsername('');
+            setPassword('');
+            if (onRegisterSuccess) onRegisterSuccess();
+        } else {
+            setError(result.message || "Une erreur est survenue lors de l'inscription");
         }
     };
 

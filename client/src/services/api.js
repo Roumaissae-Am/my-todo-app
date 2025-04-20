@@ -31,8 +31,28 @@ export const taskService = {
 };
 
 export const authService = {
-    login: async (username, password) =>
-        (await apiClient.post('/login', { username, password })).data,
-    register: async (username, password) =>
-        (await apiClient.post('/register', { username, password })).data
+    login: async (username, password) => {
+        try {
+            const response = await apiClient.post('/login', { username, password });
+            return { success: true, data: response.data };
+        } catch (error) {
+            console.error('Erreur de connexion:', error.response?.data || error.message);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Erreur lors de la connexion'
+            };
+        }
+    },
+    register: async (username, password) => {
+        try {
+            const response = await apiClient.post('/register', { username, password });
+            return { success: true, data: response.data };
+        } catch (error) {
+            console.error('Erreur d\'inscription:', error.response?.data || error.message);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Erreur lors de l\'inscription'
+            };
+        }
+    }
 };
