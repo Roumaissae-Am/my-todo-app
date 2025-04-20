@@ -24,10 +24,28 @@ apiClient.interceptors.request.use((config) => {
 });
 
 export const taskService = {
-    getAllTasks: async () => (await apiClient.get('/tasks')).data,
-    createTask: async (task) => (await apiClient.post('/tasks', task)).data,
-    completeTask: async (id) => (await apiClient.put(`/tasks/${id}/complete`)).data,
-    deleteTask: async (id) => (await apiClient.delete(`/tasks/${id}`)).data
+    getAllTasks: async () => {
+        try {
+            const response = await apiClient.get('/tasks');
+            console.log('Réponse getAllTasks:', response);
+            return response.success ? response.tasks : [];
+        } catch (error) {
+            console.error('Erreur getAllTasks:', error);
+            return [];
+        }
+    },
+    createTask: async (task) => {
+        const response = await apiClient.post('/tasks', task);
+        return response.success ? response.task : null;
+    },
+    completeTask: async (id) => {
+        const response = await apiClient.put(`/tasks/${id}/complete`);
+        return response.success ? response.task : null;
+    },
+    deleteTask: async (id) => {
+        const response = await apiClient.delete(`/tasks/${id}`);
+        return response.success;
+    }
 };
 
 export const authService = {
