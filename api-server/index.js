@@ -41,17 +41,34 @@ function authenticateToken(req, res, next) {
 app.post('/api/register', (req, res) => {
     console.log('Tentative d\'inscription:', req.body);
     const { username, password } = req.body;
-    const existingUser = users.find(u => u.username === username);
-    console.log('Utilisateurs existants:', users);
-    if (existingUser) return res.status(400).json({ message: 'Utilisateur déjà existant' });
+    
+    if (!username || !password) {
+        console.log('Données manquantes');
+        return res.status(400).json({ message: 'Username et password requis' });
+    }
 
-    const newUser = {
-        id: generateId(users),
-        username,
-        password
-    };
-    users.push(newUser);
-    res.status(201).json({ message: 'Utilisateur créé' });
+    console.log('Vérification des utilisateurs existants. Liste actuelle:', users);
+    const existingUser = users.find(u => u.username === username);
+    
+    if (existingUser) {
+        console.log('Utilisateur existant trouvé:', existingUser.username);
+        return res.status(400).json({ message: 'Utilisateur déjà existant' });
+    }
+
+    try {
+        const newUser = {
+            id: generateId(users),
+            username,
+            password
+        };
+        users.push(newUser);
+        console.log('Nouvel utilisateur créé:', { id: newUser.id, username: newUser.username });
+        console.log('Liste mise à jour des utilisateurs:', users.map(u => ({ id: u.id, username: u.username })));
+        res.status(201).json({ message: 'Utilisateur créé' });
+    } catch (error) {
+        console.error('Erreur lors de la création de l\'utilisateur:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
 });
 
 app.post('/api/login', (req, res) => {
@@ -92,10 +109,17 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
     res.json({ message: 'Tâche supprimée' });
 });
 
-// Route de debug pour voir les utilisateurs
+// Routes de debug
 app.get('/api/debug/users', (req, res) => {
     const usersSafe = users.map(u => ({ id: u.id, username: u.username }));
     res.json(usersSafe);
+});
+
+app.post('/api/debug/reset', (req, res) => {
+    users = [];
+    tasks = [];
+    console.log('Données réinitialisées');
+    res.json({ message: 'Données réinitialisées' });
 });
 
 //  Export pour Vercel
