@@ -17,11 +17,14 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-let users = [{ id: 1, username: 'admin', password: 'admin' }];
-let tasks = [
-    { id: 1, title: 'Apprendre Express', completed: false },
-    { id: 2, title: 'Créer une API REST', completed: false }
-];
+let users = [];
+let tasks = [];
+
+// Fonction pour générer un ID unique
+const generateId = (collection) => {
+    const maxId = collection.reduce((max, item) => Math.max(max, item.id), 0);
+    return maxId + 1;
+};
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -43,7 +46,7 @@ app.post('/api/register', (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'Utilisateur déjà existant' });
 
     const newUser = {
-        id: users.length + 1,
+        id: generateId(users),
         username,
         password
     };
@@ -70,7 +73,7 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
     const { title } = req.body;
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
-    const newTask = { id: tasks.length + 1, title, completed: false };
+    const newTask = { id: generateId(tasks), title, completed: false };
     tasks.push(newTask);
     res.status(201).json(newTask);
 });
