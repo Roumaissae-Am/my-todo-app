@@ -36,8 +36,10 @@ function authenticateToken(req, res, next) {
 }
 
 app.post('/api/register', (req, res) => {
+    console.log('Tentative d\'inscription:', req.body);
     const { username, password } = req.body;
     const existingUser = users.find(u => u.username === username);
+    console.log('Utilisateurs existants:', users);
     if (existingUser) return res.status(400).json({ message: 'Utilisateur déjà existant' });
 
     const newUser = {
@@ -50,7 +52,9 @@ app.post('/api/register', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
+    console.log('Tentative de connexion:', req.body);
     const { username, password } = req.body;
+    console.log('Utilisateurs disponibles:', users);
     const user = users.find(u => u.username === username && u.password === password);
     if (!user) return res.status(401).json({ message: 'Identifiants invalides' });
 
@@ -83,6 +87,12 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
     if (taskIndex === -1) return res.status(404).json({ error: 'Tâche non trouvée' });
     tasks.splice(taskIndex, 1);
     res.json({ message: 'Tâche supprimée' });
+});
+
+// Route de debug pour voir les utilisateurs
+app.get('/api/debug/users', (req, res) => {
+    const usersSafe = users.map(u => ({ id: u.id, username: u.username }));
+    res.json(usersSafe);
 });
 
 //  Export pour Vercel
