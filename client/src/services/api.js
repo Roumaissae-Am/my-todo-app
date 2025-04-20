@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const apiClient = axios.create({
     // baseURL: 'http://localhost:5000/api',
-    baseURL: 'https://my-todo-app-snowy-eight.vercel.app/api',
+    baseURL: 'https://my-todo-app-snowy-eight.vercel.app',
+
 
 
     headers: { 'Content-Type': 'application/json' }
