@@ -2,8 +2,11 @@ import axios from 'axios';
 
 const apiClient = axios.create({
     baseURL: 'https://my-todo-app-gamma-amber.vercel.app/api',
-
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    },
+    withCredentials: true
 });
 
 apiClient.interceptors.request.use((config) => {
