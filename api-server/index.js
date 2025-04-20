@@ -7,7 +7,9 @@ const app = express();
 
 // Configuration des variables d'environnement
 const SECRET_KEY = process.env.JWT_SECRET_KEY || 'clé_dev_temporaire';
-const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
+const ALLOWED_ORIGIN = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+console.log('ALLOWED_ORIGIN configuré:', ALLOWED_ORIGIN);
 
 // Middleware pour les logs
 app.use((req, res, next) => {
@@ -17,10 +19,15 @@ app.use((req, res, next) => {
 
 // Configuration CORS
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    const origin = req.headers.origin;
+    console.log('Requête reçue de:', origin);
+
+    if (origin === ALLOWED_ORIGIN) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        res.header('Access-Control-Allow-Credentials', 'true');
+    }
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
