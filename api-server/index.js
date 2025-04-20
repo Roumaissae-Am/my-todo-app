@@ -5,133 +5,229 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-// Utilisation de la variable d'environnement pour la clé secrète JWT
+// Configuration des variables d'environnement
 const SECRET_KEY = process.env.JWT_SECRET_KEY || 'clé_dev_temporaire';
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Configuration de base pour Express
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Configuration CORS simplifiée
+// Middleware pour les logs
 app.use((req, res, next) => {
-    const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.header('Access-Control-Allow-Origin', allowedOrigin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-
-    // Gérer les requêtes OPTIONS pour le pre-flight CORS
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
+// Configuration CORS
+app.use(cors({
+    origin: ALLOWED_ORIGIN,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+// Configuration du parsing
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Stockage en mémoire
 let users = [];
 let tasks = [];
 
-// Fonction pour générer un ID unique
+// Utilitaires
 const generateId = (collection) => {
     const maxId = collection.reduce((max, item) => Math.max(max, item.id), 0);
     return maxId + 1;
 };
 
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Token manquant' });
+const handleAsync = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
 
-    jwt.verify(token, SECRET_KEY, (err, user) => {
-        if (err) return res.status(403).json({ message: 'Token invalide' });
-        req.user = user;
-        next();
-    });
-}
-
-app.post('/api/register', (req, res) => {
-    console.log('Tentative d\'inscription:', req.body);
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-        console.log('Données manquantes');
-        return res.status(400).json({ message: 'Username et password requis' });
-    }
-
-    console.log('Vérification des utilisateurs existants. Liste actuelle:', users);
-    const existingUser = users.find(u => u.username === username);
-    
-    if (existingUser) {
-        console.log('Utilisateur existant trouvé:', existingUser.username);
-        return res.status(400).json({ message: 'Utilisateur déjà existant' });
-    }
-
+// Middleware d'authentification
+const authenticateToken = (req, res, next) => {
     try {
-        const newUser = {
-            id: generateId(users),
-            username,
-            password
-        };
-        users.push(newUser);
-        console.log('Nouvel utilisateur créé:', { id: newUser.id, username: newUser.username });
-        console.log('Liste mise à jour des utilisateurs:', users.map(u => ({ id: u.id, username: u.username })));
-        res.status(201).json({ message: 'Utilisateur créé' });
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Token manquant' });
+        }
+
+        jwt.verify(token, SECRET_KEY, (err, user) => {
+            if (err) {
+                console.error('Erreur JWT:', err);
+                return res.status(403).json({ message: 'Token invalide' });
+            }
+            req.user = user;
+            next();
+        });
     } catch (error) {
-        console.error('Erreur lors de la création de l\'utilisateur:', error);
-        res.status(500).json({ message: 'Erreur serveur' });
+        console.error('Erreur d\'authentification:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de l\'authentification' });
     }
-});
+};
 
-app.post('/api/login', (req, res) => {
-    console.log('Tentative de connexion:', req.body);
+// Routes d'authentification
+app.post('/api/register', handleAsync(async (req, res) => {
+    console.log('Tentative d\'inscription:', { username: req.body.username });
     const { username, password } = req.body;
-    console.log('Utilisateurs disponibles:', users);
+
+    if (!username || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Le nom d\'utilisateur et le mot de passe sont requis'
+        });
+    }
+
+    const existingUser = users.find(u => u.username === username);
+    if (existingUser) {
+        return res.status(400).json({
+            success: false,
+            message: 'Ce nom d\'utilisateur est déjà utilisé'
+        });
+    }
+
+    const newUser = {
+        id: generateId(users),
+        username,
+        password // Dans un environnement de production, il faudrait hasher le mot de passe
+    };
+
+    users.push(newUser);
+    console.log('Nouvel utilisateur créé:', { id: newUser.id, username: newUser.username });
+
+    res.status(201).json({
+        success: true,
+        message: 'Inscription réussie'
+    });
+}));
+
+app.post('/api/login', handleAsync(async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'Le nom d\'utilisateur et le mot de passe sont requis'
+        });
+    }
+
     const user = users.find(u => u.username === username && u.password === password);
-    if (!user) return res.status(401).json({ message: 'Identifiants invalides' });
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: 'Identifiants invalides'
+        });
+    }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, { expiresIn: '1h' });
-    res.json({ token });
-});
+    const token = jwt.sign(
+        { id: user.id, username: user.username },
+        SECRET_KEY,
+        { expiresIn: '1h' }
+    );
 
-app.get('/api/tasks', authenticateToken, (req, res) => {
-    res.json(tasks);
-});
+    res.json({
+        success: true,
+        token
+    });
+}));
 
-app.post('/api/tasks', authenticateToken, (req, res) => {
+// Routes des tâches
+app.get('/api/tasks', authenticateToken, handleAsync(async (req, res) => {
+    const userTasks = tasks.filter(task => task.userId === req.user.id);
+    res.json({
+        success: true,
+        tasks: userTasks
+    });
+}));
+
+app.post('/api/tasks', authenticateToken, handleAsync(async (req, res) => {
     const { title } = req.body;
-    if (!title) return res.status(400).json({ error: 'Titre requis' });
+    if (!title) {
+        return res.status(400).json({
+            success: false,
+            message: 'Le titre est requis'
+        });
+    }
 
-    const newTask = { id: generateId(tasks), title, completed: false };
+    const newTask = {
+        id: generateId(tasks),
+        userId: req.user.id,
+        title,
+        completed: false,
+        createdAt: new Date().toISOString()
+    };
+
     tasks.push(newTask);
-    res.status(201).json(newTask);
-});
+    res.status(201).json({
+        success: true,
+        task: newTask
+    });
+}));
 
-app.put('/api/tasks/:id/complete', authenticateToken, (req, res) => {
-    const task = tasks.find(t => t.id === parseInt(req.params.id));
-    if (!task) return res.status(404).json({ error: 'Tâche non trouvée' });
+app.put('/api/tasks/:id/complete', authenticateToken, handleAsync(async (req, res) => {
+    const taskId = parseInt(req.params.id);
+    const task = tasks.find(t => t.id === taskId && t.userId === req.user.id);
+
+    if (!task) {
+        return res.status(404).json({
+            success: false,
+            message: 'Tâche non trouvée'
+        });
+    }
+
     task.completed = true;
-    res.json(task);
-});
+    task.completedAt = new Date().toISOString();
 
-app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
-    const taskIndex = tasks.findIndex(t => t.id === parseInt(req.params.id));
-    if (taskIndex === -1) return res.status(404).json({ error: 'Tâche non trouvée' });
+    res.json({
+        success: true,
+        task
+    });
+}));
+
+app.delete('/api/tasks/:id', authenticateToken, handleAsync(async (req, res) => {
+    const taskId = parseInt(req.params.id);
+    const taskIndex = tasks.findIndex(t => t.id === taskId && t.userId === req.user.id);
+
+    if (taskIndex === -1) {
+        return res.status(404).json({
+            success: false,
+            message: 'Tâche non trouvée'
+        });
+    }
+
     tasks.splice(taskIndex, 1);
-    res.json({ message: 'Tâche supprimée' });
-});
+    res.json({
+        success: true,
+        message: 'Tâche supprimée'
+    });
+}));
 
 // Routes de debug
 app.get('/api/debug/users', (req, res) => {
     const usersSafe = users.map(u => ({ id: u.id, username: u.username }));
-    res.json(usersSafe);
+    res.json({
+        success: true,
+        users: usersSafe
+    });
 });
 
 app.post('/api/debug/reset', (req, res) => {
     users = [];
     tasks = [];
     console.log('Données réinitialisées');
-    res.json({ message: 'Données réinitialisées' });
+    res.json({
+        success: true,
+        message: 'Données réinitialisées'
+    });
 });
 
-//  Export pour Vercel
+// Middleware de gestion des erreurs
+app.use((err, req, res, next) => {
+    console.error('Erreur serveur:', err);
+    res.status(500).json({
+        success: false,
+        message: 'Erreur serveur interne'
+    });
+});
+
+// Export pour Vercel
 module.exports = app;

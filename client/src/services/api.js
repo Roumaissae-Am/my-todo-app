@@ -9,6 +9,15 @@ const apiClient = axios.create({
     withCredentials: true
 });
 
+// Intercepteur pour les erreurs
+apiClient.interceptors.response.use(
+    response => response.data,
+    error => {
+        console.error('API Error:', error.response?.data || error.message);
+        throw error;
+    }
+);
+
 apiClient.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;

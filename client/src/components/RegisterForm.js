@@ -10,15 +10,27 @@ const RegisterForm = ({ onRegisterSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!username || !password) {
+            setError("Le nom d'utilisateur et le mot de passe sont requis");
+            setSuccess(null);
+            return;
+        }
+
         try {
-            await authService.register(username, password);
-            setSuccess("Inscription réussie. Vous pouvez maintenant vous connecter.");
-            setUsername('');
-            setPassword('');
-            setError(null);
-            if (onRegisterSuccess) onRegisterSuccess();
+            const response = await authService.register(username, password);
+            if (response.success) {
+                setSuccess("Inscription réussie. Vous pouvez maintenant vous connecter.");
+                setUsername('');
+                setPassword('');
+                setError(null);
+                if (onRegisterSuccess) onRegisterSuccess();
+            } else {
+                setError(response.message || "Une erreur est survenue");
+                setSuccess(null);
+            }
         } catch (err) {
-            setError("Erreur : nom d'utilisateur déjà utilisé.");
+            console.error('Erreur lors de l\'inscription:', err);
+            setError(err.response?.data?.message || "Erreur lors de l'inscription");
             setSuccess(null);
         }
     };
