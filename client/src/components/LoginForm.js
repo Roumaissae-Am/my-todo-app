@@ -8,11 +8,19 @@ const LoginForm = ({ onLogin }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            const { token } = await authService.login(username, password);
-            onLogin(token);
-        } catch (err) {
-            setError("Identifiants invalides");
+        if (!username || !password) {
+            setError("Le nom d'utilisateur et le mot de passe sont requis");
+            return;
+        }
+
+        setError(null);
+        const result = await authService.login(username, password);
+        console.log('Résultat connexion:', result);
+
+        if (result.success && result.data?.token) {
+            onLogin(result.data.token);
+        } else {
+            setError(result.message || "Identifiants invalides");
         }
     };
 
