@@ -114,32 +114,41 @@ app.post('/api/register', handleAsync(async (req, res) => {
 }));
 
 app.post('/api/login', handleAsync(async (req, res) => {
+    console.log('Tentative de connexion:', { username: req.body.username });
     const { username, password } = req.body;
 
     if (!username || !password) {
+        console.log('Données manquantes lors de la connexion');
         return res.status(400).json({
             success: false,
             message: 'Le nom d\'utilisateur et le mot de passe sont requis'
         });
     }
 
+    console.log('Recherche de l\'utilisateur dans la base...');
+    console.log('Utilisateurs disponibles:', users.map(u => ({ id: u.id, username: u.username })));
+    
     const user = users.find(u => u.username === username && u.password === password);
+    
     if (!user) {
+        console.log('Utilisateur non trouvé ou mot de passe incorrect');
         return res.status(401).json({
             success: false,
             message: 'Identifiants invalides'
         });
     }
 
+    console.log('Utilisateur trouvé, génération du token...');
     const token = jwt.sign(
         { id: user.id, username: user.username },
         SECRET_KEY,
         { expiresIn: '1h' }
     );
 
+    console.log('Connexion réussie pour:', user.username);
     res.json({
         success: true,
-        token
+        data: { token }
     });
 }));
 
