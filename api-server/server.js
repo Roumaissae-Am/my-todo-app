@@ -79,7 +79,9 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
     res.json({ message: 'Tâche supprimée' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Serveur en écoute sur http://localhost:${PORT}`);
-});
+// app.listen(PORT, () => {
+//     console.log(`Serveur en écoute sur http://localhost:${PORT}`);
+// });
+module.exports = app;
+
 
